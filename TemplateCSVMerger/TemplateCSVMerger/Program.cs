@@ -13,14 +13,16 @@ namespace TemplateCSVMerger
         static void Main(string[] args)
         {
             int n_args = args.Length;
-            if (n_args != 3)
+            if (n_args < 2)
             {
-                System.Console.WriteLine("Usage: TemplateCSVMerger <template_file> <csv_file> <column_name_with_output_file");
+                System.Console.WriteLine("Usage: TemplateCSVMerger <template_file> <csv_file> [<column_name_with_output_filename>]");
                 System.Console.WriteLine();
                 System.Console.WriteLine("This application merges a template file with placeholders with the rows of a CSV file and generates one file for each row.");
-                System.Console.WriteLine("The placeholders have the format «name_of_column»");
-                System.Console.WriteLine("The first row of the CSV file contains the column names. Rows starting with # are not considered");
-                System.Console.WriteLine("CSV configuration ... ");
+                System.Console.WriteLine("The placeholders have the format «column name»." );
+                System.Console.WriteLine("The first row of the CSV file contains the column names to be replaced.");
+                System.Console.WriteLine("As he replacement is case and culture sensitive, confirm that both files have the same encoding.");
+                System.Console.WriteLine("Rows starting with # are not considered.");
+                System.Console.WriteLine("CSV delimiter is ';' ... ");
                 return;
             }
 
@@ -60,6 +62,7 @@ namespace TemplateCSVMerger
             csvParser.Configuration.IgnoreHeaderWhiteSpace = true;
             csvParser.Configuration.IsHeaderCaseSensitive = false;
 
+            string fileExtension = Path.GetExtension(args[0]);
             // loop through CSV rows
             while (true)
             {
@@ -78,16 +81,29 @@ namespace TemplateCSVMerger
                 // replace template placeholders with row values
                 for (int i = 0; i < csvParser.FieldCount; i++)
                 {
-                    content.Replace("«" + headerRow[i] + "»", row[i]);
+                    content= content.Replace("«" + headerRow[i] + "»", row[i]);
                     // if column contains filename
-                    if (headerRow[i].Equals(args[3], StringComparison.CurrentCultureIgnoreCase))
+                    if (headerRow[i].Equals(args[2]))
                         mergedFilename = row[i];
                 }
 
+                // get output filename
+                // if not defined, concatenate template file name with number 
+                if (string.IsNullOrEmpty(mergedFilename))
+                    mergedFilename = Path.GetFileNameWithoutExtension(args[0]) + csvParser.Row; 
+                if (string.IsNullOrEmpty(Path.GetExtension(mergedFilename)))
+                    mergedFilename += fileExtension;
                 // write merged file
-                if (mergedFilename.Equals(string.Empty))
-                    mergedFilename = csvParser.Row + args[0]; // use template file name with number prefix
-                File.WriteAllText(mergedFilename, content);
+
+                try
+                {
+                    File.WriteAllText(mergedFilename, content);
+                } catch (Exception ex)
+                {
+                    System.Console.WriteLine(string.Format("Exception writing output file '{0}'\n{1}", mergedFilename, ex.Message));
+                    return;
+                }
+
             }
 
         }
