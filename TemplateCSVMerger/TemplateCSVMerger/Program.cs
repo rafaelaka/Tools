@@ -8,7 +8,7 @@ using CsvHelper;
 namespace TemplateCSVMerger
 {
     class Program
-    {
+    { 
 
         static void Main(string[] args)
         {
